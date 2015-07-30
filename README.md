@@ -14,3 +14,5 @@ popd;\
 rm -rf /tmp/zeronet-installs;\
 popd
 ```
+
+The installer downloads the latest zeronet version from git.
