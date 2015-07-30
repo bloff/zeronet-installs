@@ -1,0 +1,17 @@
+[Unit]
+Description=Zeronet Server
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=zeronet
+Group=zeronet
+WorkingDirectory=/opt/zeronet
+ExecStart=/usr/bin/python zeronet.py
+
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target

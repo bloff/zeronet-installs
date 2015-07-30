@@ -1,0 +1,106 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          zeronet
+# Required-Start:    $local_fs $network $named $time $syslog
+# Required-Stop:     $local_fs $network $named $time $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       Zeronet service (http://zeronet.io).
+### END INIT INFO
+
+
+
+dir="/opt/zeronet"
+cmd="python zeronet.py"
+user="zeronet"
+
+name=`basename $0`
+pid_file=/opt/zeronet/zeronet.pid
+log_file=/opt/zeronet/zeronet.log
+
+if [ ! `whoami` = "$user" ] && [ ! `whoami` = "root" ]; then
+    echo "Please run as root user, or as 'zeronet' user."
+    exit
+fi
+
+
+get_pid() {
+    cat "$pid_file"
+}
+
+is_running() {
+    [ -f "$pid_file" ] && ps `get_pid` > /dev/null 2>&1
+}
+
+case "$1" in
+    start)
+    if is_running; then
+        echo "Already started"
+    else
+        echo "Starting $name"
+        cd "$dir"
+        if [ -z "$user" ]; then
+            sudo $cmd &> "$log_file" &
+	elif [ `whoami` = "$user" ]; then
+	    $cmd &> "$log_file" &
+        else
+            sudo -u "$user" $cmd &> "$log_file" &
+        fi
+        echo $! > "$pid_file"
+        if ! is_running; then
+            echo "Unable to start, see $log_file"
+            exit 1
+        fi
+    fi
+    ;;
+    stop)
+    if is_running; then
+        echo -n "Stopping Zeronet..."
+        kill `get_pid`
+        for i in {1..10}
+        do
+            if ! is_running; then
+                break
+            fi
+
+            echo -n "."
+            sleep 1
+        done
+        echo
+
+        if is_running; then
+            echo "Zeronet not stopped yet; may still be shutting down or shutdown may have failed."
+            exit 1
+        else
+            echo "Stopped Zeronet."
+            if [ -f "$pid_file" ]; then
+                rm "$pid_file"
+            fi
+        fi
+    else
+        echo "Zeronet is not running."
+    fi
+    ;;
+    restart)
+    $0 stop
+    if is_running; then
+        echo "Unable to stop, will not attempt to start."
+        exit 1
+    fi
+    $0 start
+    ;;
+    status)
+    if is_running; then
+        echo "Zeronet is running."
+    else
+        echo "Zeronet is stopped."
+        exit 1
+    fi
+    ;;
+    *)
+    echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
+    ;;
+esac
+
+exit 0
